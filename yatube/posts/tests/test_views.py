@@ -201,43 +201,43 @@ class PostPagesTests(TestCase):
     #     self.checking_post_context(page_object)
 
     # def test_follow_page_for_unsubscribed(self):
-        """Шаблон follow сформированы с правильным контекстом,
-        созданная запись не отображается у неподписанного пользователя"""
+    #     """Шаблон follow сформированы с правильным контекстом,
+    #     созданная запись не отображается у неподписанного пользователя"""
 
-        subscribed_user = PostPagesTests.subscribed_user
-        unsubscribed_user = PostPagesTests.unsubscribed_user
-        Follow.objects.create(author=PostPagesTests.author,
-                              user=unsubscribed_user)
-        new_gif = (
-            b'\x47\x49\x46\x38\x39\x61\x01\x00'
-            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
-            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
-            b'\x00\x00\x01\x00\x01\x00\x00\x02'
-            b'\x02\x4c\x01\x00\x3b'
-        )
-        new_uploaded = SimpleUploadedFile(
-            name='new.gif',
-            content=new_gif,
-            content_type='image/gif'
-        )
-        Post.objects.create(
-            text='Тестовая запись',
-            author=subscribed_user,
-            image=new_uploaded
-        )
+    #     subscribed_user = PostPagesTests.subscribed_user
+    #     unsubscribed_user = PostPagesTests.unsubscribed_user
+    #     Follow.objects.create(author=PostPagesTests.author,
+    #                           user=unsubscribed_user)
+    #     new_gif = (
+    #         b'\x47\x49\x46\x38\x39\x61\x01\x00'
+    #         b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+    #         b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+    #         b'\x00\x00\x01\x00\x01\x00\x00\x02'
+    #         b'\x02\x4c\x01\x00\x3b'
+    #     )
+    #     new_uploaded = SimpleUploadedFile(
+    #         name='new.gif',
+    #         content=new_gif,
+    #         content_type='image/gif'
+    #     )
+    #     Post.objects.create(
+    #         text='Тестовая запись',
+    #         author=subscribed_user,
+    #         image=new_uploaded
+    #     )
 
-        authorized_unsubscribed = Client()
-        authorized_unsubscribed.force_login(unsubscribed_user)
-        response_unsubscribed = authorized_unsubscribed.get(
-            reverse('posts:follow_index')
-        )
-        page_object_unsub = (
-            response_unsubscribed.context['page_obj'][0]
-        )
+    #     authorized_unsubscribed = Client()
+    #     authorized_unsubscribed.force_login(unsubscribed_user)
+    #     response_unsubscribed = authorized_unsubscribed.get(
+    #         reverse('posts:follow_index')
+    #     )
+    #     page_object_unsub = (
+    #         response_unsubscribed.context['page_obj'][0]
+    #     )
 
-        self.assertIn('page_obj', response_unsubscribed.context)
-        self.assertContains(response_unsubscribed, '<img')
-        self.checking_post_context(page_object_unsub)
+    #     self.assertIn('page_obj', response_unsubscribed.context)
+    #     self.assertContains(response_unsubscribed, '<img')
+    #     self.checking_post_context(page_object_unsub)
 
 
 class PaginatorViewsTest(TestCase):
