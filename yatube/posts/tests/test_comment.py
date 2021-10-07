@@ -2,6 +2,7 @@
 # использовал другие наработки с stackoverflow и от других студентов
 # самому не получается полноценно окунуться в тестирование
 import re
+import tempfile
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -16,6 +17,21 @@ try:
     from posts.models import Post
 except ImportError:
     assert False, 'Не найдена модель Post'
+
+
+@pytest.fixture
+def post(user):
+    from posts.models import Post
+    image = tempfile.NamedTemporaryFile(suffix=".jpg").name
+    return Post.objects.create(
+        text='Тестовый пост 1', author=user, image=image
+    )
+
+
+@pytest.fixture
+def user_client(user, client):
+    client.force_login(user)
+    return client
 
 
 def search_field(fields, attname):
