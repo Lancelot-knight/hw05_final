@@ -13,17 +13,14 @@ class PostURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-
         cls.group = Group.objects.create(
             title='Котики',
             slug='cat',
             description='Группа о котиках',
         )
-
         cls.author = User.objects.create_user(
             username='AuthorForPosts'
         )
-
         cls.post = Post.objects.create(
             group=PostURLTests.group,
             text="Тестовый текст",
@@ -32,13 +29,11 @@ class PostURLTests(TestCase):
 
     def setUp(self):
         self.guest_client = Client()
-        self.user = User.objects.create_user(username='HasNoName')
+        self.user = User.objects.create(username='HasNoName')
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
 
     def test_urls_uses_correct_template(self):
-        """Тест на получение правильного шаблона"""
-
         template_url_names = {
             'posts/index.html': reverse('posts:index'),
             'posts/group_list.html': reverse(
@@ -76,6 +71,11 @@ class PostURLTests(TestCase):
         response = self.guest_client.get(reverse(
             'posts:post_detail', args=[self.post.id]))
         self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    # def test_add_comment_exists_at_desired_location(self):
+    #     response = self.authorized_client.get(reverse(
+    #         'posts:add_comment', args=[self.post.id]))
+    #     self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_create_post_exists_at_desired_location(self):
         response = self.authorized_client.get(

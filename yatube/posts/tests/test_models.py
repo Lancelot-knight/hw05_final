@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post
+from ..models import Comment, Group, Post
 
 User = get_user_model()
 
@@ -69,3 +69,36 @@ class GroupModelTest(TestCase):
             with self.subTest(value=value):
                 self.assertEqual(
                     group._meta.get_field(value).verbose_name, expected)
+
+
+class CommentModelTest(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.user = User.objects.create_user(username='auth')
+        cls.post = Post.objects.create(
+            author=cls.user,
+            text='Тестовый пост больше чем на 15 символов =(((',
+        )
+        cls.comment = Comment.objects.create(
+            text='Тестовый комментарий',
+            author=cls.user,
+            post=cls.post
+        )
+
+    def test_comment_model_have_correct_object_names(self):
+        self.post = CommentModelTest.comment
+        self.assertEqual(self.post.text[:15], str(self.post))
+
+    def test_comment_verbose_name(self):
+        comment = CommentModelTest.comment
+        field_verboses = {
+            'text': 'Текст комментария',
+            'created': 'Дата комментария',
+            'author': 'Автор',
+            'post': 'Пост'
+        }
+        for value, expected in field_verboses.items():
+            with self.subTest(value=value):
+                self.assertEqual(
+                    comment._meta.get_field(value).verbose_name, expected)
