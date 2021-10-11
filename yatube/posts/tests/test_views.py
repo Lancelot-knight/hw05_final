@@ -41,6 +41,8 @@ class PostPagesTests(TestCase):
         self.user = User.objects.create_user(username='HasNoName')
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        self.authorized_client_2 = Client()
+        self.authorized_client_2.force_login(self.user)
 
     def checking_post_context(self, page_object):
         self.assertEqual(page_object.text, PostPagesTests.post.text)
@@ -62,7 +64,6 @@ class PostPagesTests(TestCase):
     def test_index_show_correct_context(self):
         response = self.guest_client.get(reverse('posts:index'))
         page_object = response.context['page_obj'][0]
-        self.assertIn('page_obj', response.context)
         self.checking_post_context(page_object)
 
     def test_group_list_show_correct_context(self):
@@ -112,6 +113,30 @@ class PostPagesTests(TestCase):
         response = self.guest_client.get(reverse('posts:index'))
 
         self.assertIn(new_post, response.context['page_obj'])
+
+    def test_followers_see_followed_author_post(self):
+        """Новая запись пользователя появляется в ленте тех, кто на него
+        подписан и не появляется в ленте тех, кто не подписан на него."""
+        Post.objects.create(
+            text="Тестовый текст автора",
+            author=self.unsubscribed_user,
+            group=self.group)
+        self.authorized_client.get(
+            reverse("posts:profile_follow",
+                    kwargs={"username": self.unsubscribed_user.username})
+        )
+        follow_1_index_user1 = self.authorized_client.get(
+            reverse("posts:follow_index"))
+        follow_post1 = follow_1_index_user1.context["page_obj"][0].text
+        new_post_text = "Тестовый новый текст"
+        Post.objects.create(
+            text=new_post_text,
+            author=self.unsubscribed_user,
+            group=self.group)
+        follow_2_index_user1 = self.authorized_client_2.get(
+            reverse("posts:follow_index"))
+        follow_post2 = follow_2_index_user1.context["page_obj"][0].text
+        self.assertNotEqual(follow_post2, follow_post1)
 
     def test_profile_follow(self):
         """Проверка системы подписок"""
