@@ -125,17 +125,23 @@ class PostPagesTests(TestCase):
             reverse('posts:profile_follow',
                     kwargs={'username': self.unsubscribed_user.username})
         )
-        follow_1_index_user1 = self.authorized_client.get(
+        self.assertFalse(
+            Follow.objects.filter(
+                author=self.unsubscribed_user,
+                user=self.subscribed_user
+            ).exists()
+        )
+        user_watch_sub_post = self.authorized_client.get(
             reverse('posts:follow_index'))
-        follow_post1 = follow_1_index_user1.context['page_obj'][0].text
+        follow_post1 = user_watch_sub_post.context['page_obj'][0].text
         new_post_text = 'Тестовый новый текст'
         Post.objects.create(
             text=new_post_text,
             author=self.unsubscribed_user,
             group=self.group)
-        follow_2_index_user1 = self.authorized_client_2.get(
+        user_dont_see_sub_post = self.authorized_client_2.get(
             reverse('posts:follow_index'))
-        follow_post2 = follow_2_index_user1.context['page_obj'][0].text
+        follow_post2 = user_dont_see_sub_post.context['page_obj'][0].text
         self.assertNotEqual(follow_post2, follow_post1)
 
     def test_profile_follow(self):
