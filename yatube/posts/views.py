@@ -138,7 +138,8 @@ def profile_unfollow(request, username):
         user=request.user,
         author=author
     )
-    check_object.delete()
+    if check_object.exists():
+        check_object.delete()
     if 'HTTP_REFERER' in request.META:
         return redirect(request.META['HTTP_REFERER'])
     return redirect('posts:profile', username=username)

@@ -118,24 +118,24 @@ class PostPagesTests(TestCase):
         """Новая запись пользователя появляется в ленте тех, кто на него
         подписан и не появляется в ленте тех, кто не подписан на него."""
         Post.objects.create(
-            text="Тестовый текст автора",
+            text='Тестовый текст автора',
             author=self.unsubscribed_user,
             group=self.group)
         self.authorized_client.get(
-            reverse("posts:profile_follow",
-                    kwargs={"username": self.unsubscribed_user.username})
+            reverse('posts:profile_follow',
+                    kwargs={'username': self.unsubscribed_user.username})
         )
         follow_1_index_user1 = self.authorized_client.get(
-            reverse("posts:follow_index"))
-        follow_post1 = follow_1_index_user1.context["page_obj"][0].text
-        new_post_text = "Тестовый новый текст"
+            reverse('posts:follow_index'))
+        follow_post1 = follow_1_index_user1.context['page_obj'][0].text
+        new_post_text = 'Тестовый новый текст'
         Post.objects.create(
             text=new_post_text,
             author=self.unsubscribed_user,
             group=self.group)
         follow_2_index_user1 = self.authorized_client_2.get(
-            reverse("posts:follow_index"))
-        follow_post2 = follow_2_index_user1.context["page_obj"][0].text
+            reverse('posts:follow_index'))
+        follow_post2 = follow_2_index_user1.context['page_obj'][0].text
         self.assertNotEqual(follow_post2, follow_post1)
 
     def test_profile_follow(self):
@@ -157,7 +157,7 @@ class PostPagesTests(TestCase):
                 kwargs={'username': unsubscribed_user}
             )
         )
-
+        self.assertEqual(Follow.objects.all().count(), 1)
         self.assertTrue(
             Follow.objects.filter(
                 author=unsubscribed_user,
@@ -169,9 +169,10 @@ class PostPagesTests(TestCase):
         """Проверка системы отписок"""
         unsubscribed_user = PostPagesTests.unsubscribed_user
         subscribed_user = PostPagesTests.subscribed_user
+
         Follow.objects.create(author=unsubscribed_user,
                               user=subscribed_user)
-
+        self.assertEqual(Follow.objects.all().count(), 1)
         authorized_subscribed = Client()
         authorized_subscribed.force_login(subscribed_user)
         authorized_subscribed.get(
