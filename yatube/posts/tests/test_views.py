@@ -142,21 +142,37 @@ class PostPagesTests(TestCase):
         page_object = response_subscribed.context['page_obj'][0]
         self.checking_post_context(page_object)
 
-    # def test_followers_dont_see_unfollowed_posts(self):
-    #     """Новая запись пользователя не появляется в ленте тех, кто на него
-    #     не подписан"""
-    #     subscribed_user = PostPagesTests.subscribed_user
-    #     unsubscribed_user = PostPagesTests.unsubscribed_user
-
-    #     Follow.objects.create(author=PostPagesTests.author,
-    #                           user=subscribed_user)
-    #     authorized_unsubscribed = Client()
-    #     authorized_unsubscribed.force_login(unsubscribed_user)
-    #     response_unsubscribed = authorized_unsubscribed.get(
-    #         reverse('posts:follow_index')
-    #     )
-    #     page_object_unsub = response_unsubscribed.context['page_obj'][0]
-    #     self.checking_post_context(page_object_unsub)
+    def test_unfollowers_dont_see_author_posts(self):
+        """Новая запись пользователя не появляется в ленте тех, кто на него
+        не подписан"""
+        subscribed_user = PostPagesTests.subscribed_user
+        unsubscribed_user = PostPagesTests.unsubscribed_user
+        Follow.objects.create(author=PostPagesTests.author,
+                              user=unsubscribed_user)
+        new_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        new_uploaded = SimpleUploadedFile(
+            name='new.gif',
+            content=new_gif,
+            content_type='image/gif'
+        )
+        Post.objects.create(
+            text='Пост третьего пользователя',
+            author=subscribed_user,
+            image=new_uploaded
+        )
+        authorized_unsubscribed = Client()
+        authorized_unsubscribed.force_login(unsubscribed_user)
+        response_unsubscribed = authorized_unsubscribed.get(
+            reverse('posts:follow_index')
+        )
+        page_object_unsub = response_unsubscribed.context['page_obj'][0]
+        self.checking_post_context(page_object_unsub)
 
     def test_profile_follow(self):
         """Проверка системы подписок"""
