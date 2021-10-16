@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase
 from django.urls import reverse
 
@@ -23,17 +24,29 @@ class PostPagesTests(TestCase):
         cls.author = User.objects.create_user(
             username='AuthorForPosts'
         )
-
-        cls.post = Post.objects.create(
-            group=PostPagesTests.group,
-            text="Тестовый текст",
-            author=User.objects.get(username='AuthorForPosts')
-        )
         cls.subscribed_user = User.objects.create_user(
             username='Подписавшийся пользователь'
         )
         cls.unsubscribed_user = User.objects.create_user(
             username='Отписавшийся пользователь'
+        )
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif'
+        )
+        cls.post = Post.objects.create(
+            group=PostPagesTests.group,
+            text="Тестовый текст",
+            author=PostPagesTests.author,
+            image=uploaded,
         )
 
     def setUp(self):
@@ -116,33 +129,50 @@ class PostPagesTests(TestCase):
 
     def test_followers_see_followed_author_post(self):
         """Новая запись пользователя появляется в ленте тех, кто на него
-        подписан и не появляется в ленте тех, кто не подписан на него."""
-        Post.objects.create(
-            text='Тестовый текст автора',
-            author=self.unsubscribed_user,
-            group=self.group)
-        self.authorized_client.get(
-            reverse('posts:profile_follow',
-                    kwargs={'username': self.unsubscribed_user.username})
+        подписан"""
+        subscribed_user = PostPagesTests.subscribed_user
+
+        Follow.objects.create(author=PostPagesTests.author,
+                              user=subscribed_user)
+        authorized_subscribed = Client()
+        authorized_subscribed.force_login(subscribed_user)
+        response_subscribed = authorized_subscribed.get(
+            reverse('posts:follow_index')
         )
-        self.assertFalse(
-            Follow.objects.filter(
-                author=self.unsubscribed_user,
-                user=self.subscribed_user
-            ).exists()
+        page_object = response_subscribed.context['page_obj'][0]
+        self.checking_post_context(page_object)
+
+    def test_unfollowers_dont_see_author_posts(self):
+        """Новая запись пользователя не появляется в ленте тех, кто на него
+        не подписан"""
+        subscribed_user = PostPagesTests.subscribed_user
+        unsubscribed_user = PostPagesTests.unsubscribed_user
+        Follow.objects.create(author=PostPagesTests.author,
+                              user=unsubscribed_user)
+        new_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x01\x00'
+            b'\x01\x00\x00\x00\x00\x21\xf9\x04'
+            b'\x01\x0a\x00\x01\x00\x2c\x00\x00'
+            b'\x00\x00\x01\x00\x01\x00\x00\x02'
+            b'\x02\x4c\x01\x00\x3b'
         )
-        user_watch_sub_post = self.authorized_client.get(
-            reverse('posts:follow_index'))
-        follow_post1 = user_watch_sub_post.context['page_obj'][0].text
-        new_post_text = 'Тестовый новый текст'
+        new_uploaded = SimpleUploadedFile(
+            name='new.gif',
+            content=new_gif,
+            content_type='image/gif'
+        )
         Post.objects.create(
-            text=new_post_text,
-            author=self.unsubscribed_user,
-            group=self.group)
-        user_dont_see_sub_post = self.authorized_client_2.get(
-            reverse('posts:follow_index'))
-        follow_post2 = user_dont_see_sub_post.context['page_obj'][0].text
-        self.assertNotEqual(follow_post2, follow_post1)
+            text='Пост третьего пользователя',
+            author=subscribed_user,
+            image=new_uploaded
+        )
+        authorized_unsubscribed = Client()
+        authorized_unsubscribed.force_login(unsubscribed_user)
+        response_unsubscribed = authorized_unsubscribed.get(
+            reverse('posts:follow_index')
+        )
+        page_object_unsub = response_unsubscribed.context['page_obj'][0]
+        self.checking_post_context(page_object_unsub)
 
     def test_profile_follow(self):
         """Проверка системы подписок"""
@@ -154,7 +184,7 @@ class PostPagesTests(TestCase):
                 author=unsubscribed_user,
                 user=subscribed_user
             ).exists())
-
+        follow_num = Follow.objects.count()
         authorized_subscribed = Client()
         authorized_subscribed.force_login(subscribed_user)
         authorized_subscribed.get(
@@ -163,13 +193,14 @@ class PostPagesTests(TestCase):
                 kwargs={'username': unsubscribed_user}
             )
         )
-        self.assertEqual(Follow.objects.all().count(), 1)
         self.assertTrue(
             Follow.objects.filter(
                 author=unsubscribed_user,
                 user=subscribed_user
             ).exists()
         )
+        follow_num_check = Follow.objects.count()
+        self.assertEqual(follow_num + 1, follow_num_check)
 
     def test_profile_unfollow(self):
         """Проверка системы отписок"""
@@ -178,7 +209,7 @@ class PostPagesTests(TestCase):
 
         Follow.objects.create(author=unsubscribed_user,
                               user=subscribed_user)
-        self.assertEqual(Follow.objects.all().count(), 1)
+        follow_num = Follow.objects.count()
         authorized_subscribed = Client()
         authorized_subscribed.force_login(subscribed_user)
         authorized_subscribed.get(
@@ -187,13 +218,8 @@ class PostPagesTests(TestCase):
                 kwargs={'username': unsubscribed_user}
             )
         )
-
-        self.assertFalse(
-            Follow.objects.filter(
-                author=unsubscribed_user,
-                user=subscribed_user
-            ).exists()
-        )
+        follow_num_check = Follow.objects.count()
+        self.assertEqual(follow_num - 1, follow_num_check)
 
 
 class PaginatorViewsTest(TestCase):
