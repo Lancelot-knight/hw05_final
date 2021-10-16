@@ -29,7 +29,7 @@
           <a href="{% url 'posts:group_posts' post.group.slug %}">все записи группы</a>
           {% endif %}
         </article>
-
+      <a href="/posts/{{ post.id }}/">подробная информация </a>
       </div>
       {% if not forloop.last %}<hr>{% endif %}
       {% endfor %}
